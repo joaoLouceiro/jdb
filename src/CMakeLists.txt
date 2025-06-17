@@ -20,6 +20,31 @@ target_compile_features(libjdb PUBLIC cxx_std_17)
 # jdb/include is set to PUBLIC
 target_include_directories(
     libjdb
-    PRIVATE include
-    PUBLIC ${CMAKE_SOURCE_DIR}/include
+    # these are called "generator expressions". They generate information specific to the current build
+    PRIVATE $<INSTALL_INTERFACE:include>
+    PUBLIC $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include>
+)
+
+# This module contains variables that specify common instalation directories
+include(GNUInstallDirs)
+install(TARGETS libjdb
+    EXPORT jdb-targets
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+    INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+)
+
+# This installs the public headers
+install(
+    DIRECTORY ${PROJECT_SOURCE_DIR}/include/
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+)
+
+# Saves the export information to a file
+install(
+    EXPORT jdb-targets
+    FILE jdb_config.cmake
+    NAMESPACE jdb::
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/jdb
 )
