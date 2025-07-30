@@ -15,7 +15,7 @@ set_target_properties(
 # specify that the target should be compiled to C++ 17
 target_compile_features(libjdb PUBLIC cxx_std_17)
 
-# specify the direcories for libjdb
+# specify the directories for libjdb
 # jdb/src/include is set to PRIVATE
 # jdb/include is set to PUBLIC
 target_include_directories(
@@ -25,7 +25,7 @@ target_include_directories(
     PUBLIC $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include>
 )
 
-# This module contains variables that specify common instalation directories
+# This module (GNUInstallDirs) contains variables that specify common instalation directories
 include(GNUInstallDirs)
 install(TARGETS libjdb
     EXPORT jdb-targets

@@ -1,3 +1,4 @@
+# set(CMAKE_EXPORT_COMPILE_COMMANDS ON) 
 cmake_minimum_required(VERSION 3.19)
 
 # Naming the project and enabling C++ support
@@ -21,3 +22,4 @@ if(BUILD_TESTING)
     find_package(Catch2 CONFIG REQUIRED)
     add_subdirectory("test")
 endif()
+
