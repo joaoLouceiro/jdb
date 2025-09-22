@@ -1,0 +1,4 @@
+CompileFlags:
+  CompilationDatabase: "/home/jlouceiro/projects/jdb/build/"
+  Add: -ferror-limit=0
+

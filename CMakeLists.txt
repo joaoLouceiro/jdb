@@ -10,7 +10,7 @@ project("jdb" LANGUAGES CXX)
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(libedit REQUIRED IMPORTED_TARGET libedit)
 
-# Enable CMakes builtin testing and add a BUILD_TESTING variable that users can set to select wheter to build the tests when configuring the project
+# Enable CMake's builtin testing and add a BUILD_TESTING variable that users can set to select wether to build the tests when configuring the project
 include(CTest)
 
 # Load the CMakeLists.txt files in both /src and /tools

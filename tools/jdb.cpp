@@ -38,7 +38,7 @@ pid_t attach(int argc, const char** argv)
             return -1;
         }
         if (pid == 0) {
-            // In child process
+            // fork returns 0 to the child process
             // Execute debugee
             if (ptrace(PTRACE_TRACEME, 0, nullptr, nullptr) < 0) {
                 std::perror("Tracing failed");
@@ -118,7 +118,7 @@ int main(int argc, const char** argv)
         std::perror("waitpid failed");
     }
     char* line = nullptr;
-    // readline creates a prompt anbd returns a char* with whatever the user wrote.
+    // readline creates a prompt and returns a char* with whatever the user wrote.
     // If it reads an EOF, it returns nullptr
     while ((line = readline("jdb> ")) != nullptr) {
         std::string line_str;
