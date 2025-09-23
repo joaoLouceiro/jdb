@@ -1,6 +1,7 @@
 #ifndef JDB_PROCESS_HPP
 #define JDB_PROCESS_HPP
 
+#include <cstdint>
 #include <filesystem>
 #include <memory>
 #include <sys/types.h>
@@ -8,6 +9,13 @@
 namespace jdb {
 
 enum class process_state { stopped, running, exited, terminated };
+
+struct stop_reason {
+    stop_reason(int wait_status);
+
+    process_state reason;
+    std::uint8_t info;
+};
 
 class process {
 public:
@@ -28,6 +36,7 @@ public:
     ~process();
 
     process_state state() const { return state_; }
+    stop_reason wait_on_signal();
 
 private:
     pid_t pid_ = 0;

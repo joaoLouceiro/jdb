@@ -1,9 +1,12 @@
 #include <algorithm>
 #include <cstdio>
 #include <cstdlib>
+#include <cstring>
 #include <editline/readline.h>
 #include <iostream>
+#include <libjdb/error.hpp>
 #include <libjdb/libjdb.hpp>
+#include <libjdb/process.hpp>
 #include <memory>
 #include <sstream>
 #include <string>
@@ -15,46 +18,18 @@
 #include <vector>
 
 namespace {
-pid_t attach(int argc, const char** argv)
+std::unique_ptr<jdb::process> attach(int argc, const char** argv)
 {
     pid_t pid = 0;
     // Passing a PID
     if (argc == 3 && argv[1] == std::string_view("-p")) {
         // In this branch, the program will attach to a running process
         pid = std::atoi(argv[2]);
-        if (pid <= 0) {
-            std::cerr << "Invalid pid\n";
-            return -1;
-        }
-        if (ptrace(PTRACE_ATTACH, pid, nullptr, nullptr) < 0) {
-            std::perror("Could not attach");
-            return -1;
-        }
+        return jdb::process::attach(pid);
     } else {
         const char* program_path = argv[1];
-        // fork is a syscall that splits the running process into two different processes
-        if ((pid = fork()) < 0) {
-            std::perror("Fork failed");
-            return -1;
-        }
-        if (pid == 0) {
-            // fork returns 0 to the child process
-            // Execute debugee
-            if (ptrace(PTRACE_TRACEME, 0, nullptr, nullptr) < 0) {
-                std::perror("Tracing failed");
-                return -1;
-            }
-            // exec* is a family of syscalls that replaces the currently executing program with a
-            // new one. The l means that the arguments will be passed to the program individually,
-            // as opposed to an array. The p tells exec to look for the given program name in the
-            // PATH environment variable.
-            if (execlp(program_path, program_path, nullptr) < 0) {
-                std::perror("Exec failed");
-                return -1;
-            }
-        }
+        return jdb::process::launch(program_path);
     }
-    return pid;
 }
 
 std::vector<std::string> split(std::string_view str, char delimiter)
@@ -73,50 +48,40 @@ bool is_prefix(std::string_view str, std::string_view of)
         return false;
     return std::equal(str.begin(), str.end(), of.begin());
 }
-// Wrapper for PTRACE_CONT
-void resume(pid_t pid)
+void print_stop_reason(const jdb::process& process, jdb::stop_reason reason)
 {
-    if (ptrace(PTRACE_CONT, pid, nullptr, nullptr) < 0) {
-        std::cerr << "Couldn't continue\n";
-        std::exit(-1);
+    std::cout << "Process " << process.pid() << ' ';
+
+    switch (reason.reason) {
+    case jdb::process_state::exited:
+        std::cout << "exited with status " << static_cast<int>(reason.info);
+        break;
+    case jdb::process_state::terminated:
+        std::cout << "terminated with signal " << sigabbrev_np(reason.info);
+        break;
+    case jdb::process_state::stopped:
+        std::cout << "stopped with signal " << sigabbrev_np(reason.info);
+        break;
     }
+
+    std::cout << std::endl;
 }
-// Wrapper for waitpid
-void wait_on_signal(pid_t pid)
-{
-    int wait_status;
-    int options = 0;
-    if (waitpid(pid, &wait_status, options) < 0) {
-        std::perror("waitpid failed");
-        std::exit(-1);
-    }
-}
-void handle_command(pid_t pid, std::string_view line)
+void handle_command(std::unique_ptr<jdb::process>& process, std::string_view line)
 {
     auto args = split(line, ' ');
     auto command = args[0];
     if (is_prefix(command, "continue")) {
-        resume(pid);
-        wait_on_signal(pid);
+        process->resume();
+        auto reason = process->wait_on_signal();
+        print_stop_reason(*process, reason);
     } else {
         std::cerr << "Unknown command\n";
     }
 }
 }
 
-int main(int argc, const char** argv)
+void main_loop(std::unique_ptr<jdb::process>& process)
 {
-    if (argc == 1) {
-        std::cerr << "No arguments given\n";
-        return -1;
-    }
-    pid_t pid = attach(argc, argv);
-
-    int wait_status;
-    int options = 0;
-    if (waitpid(pid, &wait_status, options) < 0) {
-        std::perror("waitpid failed");
-    }
     char* line = nullptr;
     // readline creates a prompt and returns a char* with whatever the user wrote.
     // If it reads an EOF, it returns nullptr
@@ -139,7 +104,21 @@ int main(int argc, const char** argv)
         }
 
         if (!line_str.empty()) {
-            handle_command(pid, line_str);
+            handle_command(process, line_str);
         }
+    }
+}
+
+int main(int argc, const char** argv)
+{
+    if (argc == 1) {
+        std::cerr << "No arguments given\n";
+        return -1;
+    }
+    try {
+        auto process = attach(argc, argv);
+        main_loop(process);
+    } catch (const jdb::error& err) {
+        std::cout << err.what() << '\n';
     }
 }
