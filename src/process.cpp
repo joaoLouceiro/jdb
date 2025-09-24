@@ -1,15 +1,31 @@
+#include <cerrno>
+#include <cstddef>
+#include <cstring>
+#include <libjdb/error.hpp>
+#include <libjdb/pipe.hpp>
+#include <libjdb/process.hpp>
+
 #include <csignal>
 #include <cstdlib>
-#include <libjdb/error.hpp>
-#include <libjdb/process.hpp>
 #include <memory>
+#include <string>
 #include <sys/ptrace.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
 
+namespace {
+void exit_with_perror(jdb::pipe& channel, std::string const& prefix)
+{
+    auto message = prefix + ": " + std::strerror(errno);
+    channel.write(reinterpret_cast<std::byte*>(message.data()), message.size());
+    exit(-1);
+}
+}
+
 std::unique_ptr<jdb::process> jdb::process::launch(std::filesystem::path path)
 {
+    pipe channel(true);
     pid_t pid;
     // fork is a syscall that splits the running process into two different processes
     if ((pid = fork()) < 0) {
@@ -17,18 +33,31 @@ std::unique_ptr<jdb::process> jdb::process::launch(std::filesystem::path path)
     }
 
     if (pid == 0) {
+        // Because the child process will not be reading from the pipe, we can close it immediately
+        channel.close_read();
         // fork returns 0 to the child process
         // Execute debugee
         if (ptrace(PTRACE_TRACEME, 0, nullptr, nullptr)) {
-            error::send_errno("Tracing failed");
+            exit_with_perror(channel, "Tracing failed");
         }
         // exec* is a family of syscalls that replaces the currently executing program with a
         // new one. The l means that the arguments will be passed to the program individually,
         // as opposed to an array. The p tells exec to look for the given program name in the
         // PATH environment variable.
         if (execlp(path.c_str(), path.c_str(), nullptr) < 0) {
-            error::send_errno("exec failed");
+            exit_with_perror(channel, "exec failed");
         }
+    }
+
+    channel.close_write();
+    auto data = channel.read();
+    channel.close_read();
+
+    // If any data has been written to the pipe, then an error has been thrown by the child.
+    if (data.size() > 0) {
+        waitpid(pid, nullptr, 0);
+        auto chars = reinterpret_cast<char*>(data.data());
+        error::send(std::string(chars, chars + data.size()));
     }
 
     std::unique_ptr<process> proc(new process(pid, true));
