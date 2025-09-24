@@ -19,7 +19,7 @@ struct stop_reason {
 
 class process {
   public:
-    static std::unique_ptr<process> launch(std::filesystem::path path);
+    static std::unique_ptr<process> launch(std::filesystem::path path, bool debug = true);
     static std::unique_ptr<process> attach(pid_t pid);
 
     void resume();
@@ -39,12 +39,15 @@ class process {
     stop_reason wait_on_signal();
 
   private:
+    // private constructor, so that the client can only create a member of the class by calling the
+    // launch and attach public functions
+    process(pid_t pid, bool terminate_on_end, bool is_attached)
+        : pid_(pid), terminate_on_end_(terminate_on_end), is_attached_(is_attached) {}
+
     pid_t pid_ = 0;
     bool terminate_on_end_ = true;
     process_state state_ = process_state::stopped;
-    // private constructor, so that the client can only create a member of the class by calling the
-    // launch and attach public functions
-    process(pid_t pid, bool terminate_on_end) : pid_(pid), terminate_on_end_(terminate_on_end) {}
+    bool is_attached_;
 };
 
 } // namespace jdb
