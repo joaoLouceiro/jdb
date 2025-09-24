@@ -1,12 +1,11 @@
 #include <cerrno>
+#include <csignal>
 #include <cstddef>
+#include <cstdlib>
 #include <cstring>
 #include <libjdb/error.hpp>
 #include <libjdb/pipe.hpp>
 #include <libjdb/process.hpp>
-
-#include <csignal>
-#include <cstdlib>
 #include <memory>
 #include <string>
 #include <sys/ptrace.h>
@@ -15,16 +14,14 @@
 #include <unistd.h>
 
 namespace {
-void exit_with_perror(jdb::pipe& channel, std::string const& prefix)
-{
+void exit_with_perror(jdb::pipe &channel, std::string const &prefix) {
     auto message = prefix + ": " + std::strerror(errno);
-    channel.write(reinterpret_cast<std::byte*>(message.data()), message.size());
+    channel.write(reinterpret_cast<std::byte *>(message.data()), message.size());
     exit(-1);
 }
-}
+} // namespace
 
-std::unique_ptr<jdb::process> jdb::process::launch(std::filesystem::path path)
-{
+std::unique_ptr<jdb::process> jdb::process::launch(std::filesystem::path path) {
     pipe channel(true);
     pid_t pid;
     // fork is a syscall that splits the running process into two different processes
@@ -56,7 +53,7 @@ std::unique_ptr<jdb::process> jdb::process::launch(std::filesystem::path path)
     // If any data has been written to the pipe, then an error has been thrown by the child.
     if (data.size() > 0) {
         waitpid(pid, nullptr, 0);
-        auto chars = reinterpret_cast<char*>(data.data());
+        auto chars = reinterpret_cast<char *>(data.data());
         error::send(std::string(chars, chars + data.size()));
     }
 
@@ -66,8 +63,7 @@ std::unique_ptr<jdb::process> jdb::process::launch(std::filesystem::path path)
     return proc;
 }
 
-std::unique_ptr<jdb::process> jdb::process::attach(pid_t pid)
-{
+std::unique_ptr<jdb::process> jdb::process::attach(pid_t pid) {
     if (pid == 0) {
         error::send("Invalid PID");
     }
@@ -81,8 +77,7 @@ std::unique_ptr<jdb::process> jdb::process::attach(pid_t pid)
     return proc;
 }
 
-jdb::process::~process()
-{
+jdb::process::~process() {
     if (pid_ != 0) {
         int status;
         if (state_ == process_state::running) {
@@ -100,16 +95,14 @@ jdb::process::~process()
 }
 
 // Wrapper for PTRACE_CONT
-void jdb::process::resume()
-{
+void jdb::process::resume() {
     if (ptrace(PTRACE_CONT, pid_, nullptr, nullptr) < 0) {
         error::send_errno("Could not resume");
     }
     state_ = process_state::running;
 }
 
-jdb::stop_reason::stop_reason(int wait_status)
-{
+jdb::stop_reason::stop_reason(int wait_status) {
     if (WIFEXITED(wait_status)) {
         reason = process_state::exited;
         info = WEXITSTATUS(wait_status);
@@ -123,8 +116,7 @@ jdb::stop_reason::stop_reason(int wait_status)
 }
 
 // Wrapper for waitpid
-jdb::stop_reason jdb::process::wait_on_signal()
-{
+jdb::stop_reason jdb::process::wait_on_signal() {
     int wait_status;
     int options = 0;
     if (waitpid(pid_, &wait_status, options) < 0) {

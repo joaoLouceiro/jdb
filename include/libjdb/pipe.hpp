@@ -6,7 +6,7 @@
 
 namespace jdb {
 class pipe {
-public:
+  public:
     explicit pipe(bool close_on_exec);
     ~pipe();
 
@@ -20,13 +20,13 @@ public:
     // Using byte instead of char protects us against, for example,integerr arithmetic, which we
     // should avoid when interacting with raw memory.
     std::vector<std::byte> read();
-    void write(std::byte* from, std::size_t bytes);
+    void write(std::byte *from, std::size_t bytes);
 
-private:
+  private:
     static constexpr unsigned read_fd = 0;
     static constexpr unsigned write_fd = 1;
     int fds_[2];
 };
-}
+} // namespace jdb
 
 #endif // !JDB_PIPE_HPP

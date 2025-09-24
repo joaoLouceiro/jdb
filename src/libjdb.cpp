@@ -1,8 +1,6 @@
 #include <iostream>
-// header files in the public jdb/include/libjdb directory should always be included using angle brackets:
-#include <libjdb/libjdb.hpp> 
+// header files in the public jdb/include/libjdb directory should always be included using angle
+// brackets:
+#include <libjdb/libjdb.hpp>
 
-void jdb::say_hello() {
-    std::cout << "Hello, world\n";
-}
-
+void jdb::say_hello() { std::cout << "Hello, world\n"; }

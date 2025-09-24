@@ -18,7 +18,7 @@ struct stop_reason {
 };
 
 class process {
-public:
+  public:
     static std::unique_ptr<process> launch(std::filesystem::path path);
     static std::unique_ptr<process> attach(pid_t pid);
 
@@ -29,8 +29,8 @@ public:
     // delete the constructor and copy constructors so the client code is forced to use the static
     // members
     process() = delete;
-    process(const process&) = delete;
-    process& operator=(const process&) = delete;
+    process(const process &) = delete;
+    process &operator=(const process &) = delete;
 
     // create a publicly available destructor
     ~process();
@@ -38,17 +38,13 @@ public:
     process_state state() const { return state_; }
     stop_reason wait_on_signal();
 
-private:
+  private:
     pid_t pid_ = 0;
     bool terminate_on_end_ = true;
     process_state state_ = process_state::stopped;
     // private constructor, so that the client can only create a member of the class by calling the
     // launch and attach public functions
-    process(pid_t pid, bool terminate_on_end)
-        : pid_(pid)
-        , terminate_on_end_(terminate_on_end)
-    {
-    }
+    process(pid_t pid, bool terminate_on_end) : pid_(pid), terminate_on_end_(terminate_on_end) {}
 };
 
 } // namespace jdb

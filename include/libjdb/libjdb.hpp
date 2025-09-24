@@ -2,7 +2,7 @@
 #define JDB_LIBJDB_HPP
 
 namespace jdb {
-    void say_hello();
+void say_hello();
 }
 
 #endif // !JDB_LIBJDB_HPP

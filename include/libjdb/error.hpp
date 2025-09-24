@@ -6,24 +6,19 @@
 
 namespace jdb {
 class error : public std::runtime_error {
-public:
+  public:
     [[noreturn]]
-    static void send(const std::string& what)
-    {
+    static void send(const std::string &what) {
         throw error(what);
     }
     [[noreturn]]
-    static void send_errno(const std::string& prefix)
-    {
+    static void send_errno(const std::string &prefix) {
         throw error(prefix + ": " + std::strerror(errno));
     }
 
-private:
-    error(const std::string& what)
-        : std::runtime_error(what)
-    {
-    }
+  private:
+    error(const std::string &what) : std::runtime_error(what) {}
 };
-}
+} // namespace jdb
 
 #endif // !JDB_ERROR_HPP
