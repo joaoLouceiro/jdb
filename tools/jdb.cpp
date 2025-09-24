@@ -5,7 +5,6 @@
 #include <editline/readline.h>
 #include <iostream>
 #include <libjdb/error.hpp>
-#include <libjdb/libjdb.hpp>
 #include <libjdb/process.hpp>
 #include <memory>
 #include <sstream>
