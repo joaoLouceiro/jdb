@@ -1,7 +1,6 @@
 #include <catch2/catch_test_macros.hpp>
 #include <filesystem>
 #include <fstream>
-#include <iostream>
 #include <libjdb/error.hpp>
 #include <libjdb/process.hpp>
 #include <signal.h>
@@ -47,4 +46,29 @@ TEST_CASE("process:attach success", "[process]") {
 
 TEST_CASE("process:attach invalid PID", "[process]") {
     REQUIRE_THROWS_AS(process::attach(0), error);
+}
+
+TEST_CASE("process::resume success", "[process]") {
+    {
+        auto proc = process::launch("test/targets/run_endlessly");
+        proc->resume();
+        auto status = get_process_status(proc->pid());
+        auto success = status == 'R' || status == 'S';
+        REQUIRE(success);
+    }
+    {
+        auto target = process::launch("test/targets/run_endlessly", false);
+        auto proc = process::attach(target->pid());
+        proc->resume();
+        auto status = get_process_status(proc->pid());
+        auto success = status == 'R' || status == 'S';
+        REQUIRE(success);
+    }
+}
+
+TEST_CASE("process::resume already terminated", "[process]") {
+    auto proc = process::launch("test/targets/end_immediately");
+    proc->resume();
+    proc->wait_on_signal();
+    REQUIRE_THROWS_AS(proc->resume(), error);
 }
