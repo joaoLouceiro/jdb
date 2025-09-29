@@ -3,8 +3,10 @@
 
 #include <cstdint>
 #include <filesystem>
+#include <libjdb/registers.hpp>
 #include <memory>
 #include <sys/types.h>
+#include <sys/user.h>
 
 namespace jdb {
 
@@ -38,16 +40,28 @@ class process {
     process_state state() const { return state_; }
     stop_reason wait_on_signal();
 
+    registers &get_registers() { return *registers_; }
+    const registers &get_registers() const { return *registers_; }
+
+    void write_fprs(const user_fpregs_struct &fprs);
+    void write_gprs(const user_regs_struct &gprs);
+
+    void write_user_area(std::size_t offset, std::uint64_t data);
+
   private:
     // private constructor, so that the client can only create a member of the class by calling the
     // launch and attach public functions
     process(pid_t pid, bool terminate_on_end, bool is_attached)
-        : pid_(pid), terminate_on_end_(terminate_on_end), is_attached_(is_attached) {}
+        : pid_(pid), terminate_on_end_(terminate_on_end), is_attached_(is_attached),
+          registers_(new registers(*this)) {}
+
+    void read_all_registers();
 
     pid_t pid_ = 0;
     bool terminate_on_end_ = true;
     process_state state_ = process_state::stopped;
     bool is_attached_;
+    std::unique_ptr<registers> registers_;
 };
 
 } // namespace jdb
