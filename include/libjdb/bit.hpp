@@ -4,6 +4,8 @@
 #include <cstddef>
 #include <cstring>
 #include <libjdb/types.hpp>
+#include <string_view>
+#include <vector>
 
 namespace jdb {
 template <class To> To from_bytes(const std::byte *bytes) {
@@ -33,6 +35,13 @@ template <class From> const std::byte *as_bytes(const From &from) {
     return reinterpret_cast<const std::byte *>(&from);
 }
 
+inline std::string_view to_string_view(const std::byte *data, std::size_t size) {
+    return {reinterpret_cast<const char *>(data), size};
+}
+
+inline std::string_view to_string_view(const std::vector<std::byte> &data) {
+    return to_string_view(data.data(), data.size());
+}
 } // namespace jdb
 
 #endif // !JDB_BIT_HPP

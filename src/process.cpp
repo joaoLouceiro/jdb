@@ -1,14 +1,18 @@
-#include "libjdb/register_info.hpp"
+#include "libjdb/bit.hpp"
 #include <cerrno>
 #include <csignal>
 #include <cstddef>
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
+#include <iostream>
+#include <libjdb/bit.hpp>
 #include <libjdb/error.hpp>
 #include <libjdb/pipe.hpp>
 #include <libjdb/process.hpp>
+#include <libjdb/register_info.hpp>
 #include <memory>
+#include <optional>
 #include <string>
 #include <sys/ptrace.h>
 #include <sys/types.h>
@@ -24,7 +28,8 @@ void exit_with_perror(jdb::pipe &channel, std::string const &prefix) {
 }
 } // namespace
 
-std::unique_ptr<jdb::process> jdb::process::launch(std::filesystem::path path, bool debug) {
+std::unique_ptr<jdb::process> jdb::process::launch(std::filesystem::path path, bool debug,
+                                                   std::optional<int> stdout_replacement) {
     pipe channel(true);
     pid_t pid;
     // fork is a syscall that splits the running process into two different processes
@@ -34,6 +39,14 @@ std::unique_ptr<jdb::process> jdb::process::launch(std::filesystem::path path, b
     if (pid == 0) {
         // Because the child process will not be reading from the pipe, we can close it immediately
         channel.close_read();
+        if (stdout_replacement) {
+            // dup2 copies the content of the first file descriptor to the second, and then closes
+            // the latter. This means that stdout will be replaced with stdout_replacement, which
+            // could be a file or a pipe
+            if (dup2(*stdout_replacement, STDOUT_FILENO) < 0) {
+                exit_with_perror(channel, "stdout_replacement failed");
+            }
+        }
         // fork returns 0 to the child process
         // Execute debugee
         if (debug && ptrace(PTRACE_TRACEME, 0, nullptr, nullptr)) {
@@ -158,6 +171,8 @@ void jdb::process::read_all_registers() {
 }
 
 void jdb::process::write_user_area(std::size_t offset, std::uint64_t data) {
+    std::cout << offset << "\n";
+    std::cout << std::hex << data << "\n";
     if (ptrace(PTRACE_POKEUSER, pid_, offset, data) < 0) {
         error::send_errno("Could not write to user area");
     }

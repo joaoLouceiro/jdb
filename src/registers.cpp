@@ -6,6 +6,7 @@
 #include <libjdb/process.hpp>
 #include <libjdb/register_info.hpp>
 #include <libjdb/registers.hpp>
+#include <ostream>
 #include <type_traits>
 #include <variant>
 
@@ -84,6 +85,7 @@ void jdb::registers::write(const register_info &info, value val) {
         },
         val);
 
+    std::cout << info.offset << std::endl;
     if (info.type == register_type::fpr) {
         proc_->write_fprs(data_.i387);
     } else {

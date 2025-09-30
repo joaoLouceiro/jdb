@@ -2,7 +2,7 @@
 cmake_minimum_required(VERSION 3.19)
 
 # Naming the project and enabling C++ support
-project("jdb" LANGUAGES CXX)
+project("jdb" LANGUAGES CXX ASM)
 
 # Added after vcpkg
 # find_package looks for installed libraries

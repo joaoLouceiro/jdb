@@ -1,8 +1,11 @@
 #include <catch2/catch_test_macros.hpp>
 #include <filesystem>
 #include <fstream>
+#include <libjdb/bit.hpp>
 #include <libjdb/error.hpp>
+#include <libjdb/pipe.hpp>
 #include <libjdb/process.hpp>
+#include <libjdb/register_info.hpp>
 #include <signal.h>
 #include <string>
 #include <sys/types.h>
@@ -71,4 +74,24 @@ TEST_CASE("process::resume already terminated", "[process]") {
     proc->resume();
     proc->wait_on_signal();
     REQUIRE_THROWS_AS(proc->resume(), error);
+}
+
+TEST_CASE("Write register works", "[register]") {
+    bool close_on_exec = false;
+    jdb::pipe channel(close_on_exec);
+
+    auto proc = process::launch("test/targets/reg_write", true, channel.get_write());
+    channel.close_write();
+
+    proc->resume();
+    proc->wait_on_signal();
+
+    auto &regs = proc->get_registers();
+    regs.write_by_id(register_id::rsi, 0xcafecafe);
+
+    proc->resume();
+    proc->wait_on_signal();
+
+    auto output = channel.read();
+    REQUIRE(to_string_view(output) == "0xcafecafe");
 }
