@@ -17,7 +17,7 @@
     register_type::sub_gpr, register_format::uint)
 
 #define DEFINE_GPR_8H(name, super) \
-  DEFINE_REGISTER(name, -1, 1, GPR_OFFSET(super),\
+  DEFINE_REGISTER(name, -1, 1, GPR_OFFSET(super) + 1,\
     register_type::sub_gpr, register_format::uint)
 
 #define DEFINE_GPR_8L(name, super) \
