@@ -171,8 +171,6 @@ void jdb::process::read_all_registers() {
 }
 
 void jdb::process::write_user_area(std::size_t offset, std::uint64_t data) {
-    std::cout << offset << "\n";
-    std::cout << std::hex << data << "\n";
     if (ptrace(PTRACE_POKEUSER, pid_, offset, data) < 0) {
         error::send_errno("Could not write to user area");
     }

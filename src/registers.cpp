@@ -85,7 +85,6 @@ void jdb::registers::write(const register_info &info, value val) {
         },
         val);
 
-    std::cout << info.offset << std::endl;
     if (info.type == register_type::fpr) {
         proc_->write_fprs(data_.i387);
     } else {
