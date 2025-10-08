@@ -1,4 +1,5 @@
 #include <catch2/catch_test_macros.hpp>
+#include <cstdint>
 #include <filesystem>
 #include <fstream>
 #include <libjdb/bit.hpp>
@@ -77,6 +78,8 @@ TEST_CASE("process::resume already terminated", "[process]") {
 }
 
 TEST_CASE("Write register works", "[register]") {
+    // Our goal is to check, from within a running process, that we can affect the value of a
+    // register.
     bool close_on_exec = false;
     jdb::pipe channel(close_on_exec);
 
@@ -86,6 +89,8 @@ TEST_CASE("Write register works", "[register]") {
     proc->resume();
     proc->wait_on_signal();
 
+    // Because we are writing to rsi (where the syscall expects it's first parameter to live)
+    // from the debugger's test, printf will send the value we just wrote to the standard out.
     auto &regs = proc->get_registers();
     regs.write_by_id(register_id::rsi, 0xcafecafe);
 
@@ -94,4 +99,38 @@ TEST_CASE("Write register works", "[register]") {
 
     auto output = channel.read();
     REQUIRE(to_string_view(output) == "0xcafecafe");
+
+    regs.write_by_id(register_id::mm0, 0xba5eba11);
+
+    proc->resume();
+    proc->wait_on_signal();
+
+    output = channel.read();
+    REQUIRE(to_string_view(output) == "0xba5eba11");
+
+    regs.write_by_id(register_id::xmm0, 42.42);
+
+    proc->resume();
+    proc->wait_on_signal();
+
+    output = channel.read();
+    REQUIRE(to_string_view(output) == "42.42");
+
+    // This test is a bit weirder. x87 registers work with their own sort of stack and set of
+    // instructions. Getting the value onto the register itself is easy enough:
+    regs.write_by_id(register_id::st0, 42.24l);
+    // The FSW register is responsible for the Status Word. This tracks the the current size of the
+    // FPU stack and reports errors like stack overflows, precision errors, or divisions by zero.
+    // Bits 11 through 13 track the top of the stack, which starts at index 0 and goes down,
+    // wrapping around to 7. To push the value to the stack, we set these bits to 7 (0b111).
+    regs.write_by_id(register_id::fsw, std::uint16_t{0b0011100000000000});
+    // The FPU Tag Word register tracks which of the st registers are valid, empty, or have a
+    // special value like infinity or NaN. 0b00 is a valid register, 0b11 is invalid.
+    regs.write_by_id(register_id::ftw, std::uint16_t{0b0011111111111111});
+
+    proc->resume();
+    proc->wait_on_signal();
+
+    output = channel.read();
+    REQUIRE(to_string_view(output) == "42.24");
 }
