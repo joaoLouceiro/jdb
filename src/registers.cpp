@@ -40,7 +40,6 @@ template <class T> jdb::byte128 widen(const jdb::register_info &info, T t) {
 jdb::registers::value jdb::registers::read(const register_info &info) const {
     // Pointer to the raw bytes of the register data
     auto bytes = as_bytes(data_);
-
     if (info.format == register_format::uint) {
         switch (info.size) {
         case 1:
@@ -60,13 +59,12 @@ jdb::registers::value jdb::registers::read(const register_info &info) const {
         }
     } else if (info.format == register_format::double_float) {
         return from_bytes<double>(bytes + info.offset);
-
     } else if (info.format == register_format::long_double) {
         return from_bytes<long double>(bytes + info.offset);
-    } else if (info.format == register_format::vector and info.size == 8) {
+    } else if (info.format == register_format::vector && info.size == 8) {
         return from_bytes<byte64>(bytes + info.offset);
     } else {
-        return from_bytes<double>(bytes + info.offset);
+        return from_bytes<byte128>(bytes + info.offset);
     }
 }
 

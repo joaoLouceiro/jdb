@@ -26,6 +26,8 @@ main:
     movq    %rsp, %rbp
 
     # Get PID
+    # The getpid syscall is represented by the syscall ID 39. When successfull, it 
+    # returns the PID to rax. We can then move that value onto a register that we know we won't overwrite.
     movq    $39, %rax
     syscall
     movq    %rax, %r12
