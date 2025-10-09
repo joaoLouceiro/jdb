@@ -9,6 +9,7 @@ project("jdb" LANGUAGES CXX ASM)
 # libedit was added as a dependency in vcpkg.json
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(libedit REQUIRED IMPORTED_TARGET libedit)
+find_package(fmt CONFIG REQUIRED)
 
 # Enable CMake's builtin testing and add a BUILD_TESTING variable that users can set to select wether to build the tests when configuring the project
 include(CTest)
